@@ -1,15 +1,26 @@
+
+#Thanks to ODS and Pavel Pleskov for some useful ideas and materials
+
 import pandas as pd
 import numpy as np
 import re
 from unidecode import unidecode
-from  copy import deepcopy
+from copy import deepcopy
+from nltk.corpus import stopwords
+from stop_words import get_stop_words
+import time
+from tqdm import tqdm
+
+start_time = time.time()
 
 np.random.seed(1)
 
-#как у Остякова
 UNKNOWN_WORD = "_UNK_"
 END_WORD = "_END_"
 NAN_WORD = "_NAN_"
+
+#length thresold for deleting words
+WORD_LENGTH_THRESOLD=3
 
 class_names = ['toxic', 'severe_toxic', 'obscene', 'threat', 'insult', 'identity_hate']
 
@@ -108,14 +119,68 @@ repl = {
     "weren't" : "were not",
 }
 
-keys = [i for i in repl.keys()]
+curse = {"fuck":"fuck",
+         "suck":"suck",
+         "cunt":"cunt",
+         "fuk":"fuck",
+         "crap":"crap",
+         "cock":"cock",
+         "dick":"dick",
+         "dumb":"dumb",
+         "shit":"shit",
+         "bitch":"bitch",
+         "damn":"damn",
+         "piss":"piss",
+         "gay":"gay",
+         "fag":"faggot",
+         "assh":"asshole",
+         "basta":"bastard",
+         "douch":"douche",
+         "haha":"haha",
+         "nigger":"nigger",
+         "penis":"penis",
+         "vagina":"vagina",
+         "niggors":"niggers",
+         "nigors":"nigers",
+         "fvckers":"fuckers",
+         "phck":"fuck",
+         "fack":"fuck",
+         "sex":"sex",
+         "wiki":"wikipedia",
+         "viki":"wikipedia",
+        }
 
+fuck = {"f**c":"fuck",
+        "f**k":"fuck",
+        "f**i":"fuck",
+        "f*ck":"fuck",
+        "fu*k":"fuck",
+        "shi*":"shit",
+        "s**t":"shit",
+        "sh*t":"shit",
+        "f***":"fuck",
+        "****i":"fuck",
+        "c**t":"cunt",
+        "b**ch":"bitch",
+        "d**n":"damn",
+        "*uck":"fuck",
+        "fc*k":"fuck",
+        "fu**":"fuck",
+        "f*k":"fuck",
+        "fuc*":"fuck",
+        "f**":"fuck"
+        #"fck":"fuck" --- ???
+        }
+
+keys = [i for i in repl.keys()]
+keys_curse = [i for i in curse.keys()]
+fuck_keys = [i for i in fuck.keys()]
 
 # для хранения предобраюотанных комментов
 prep_c_train = []
 prep_c_test = []
-#
-for c_train in train_C.values:
+
+for c_train in tqdm(train_C.values):
 
     #Делаем преобразование на подобие этого: "ＷＨＡＴＡ  ＦＵＣＫ  ＭＡＮ" --> "WHATA FUCK MAN"
     c_train = unidecode(c_train)
@@ -124,15 +189,57 @@ for c_train in train_C.values:
 
     # drop urls
     c_train = re.sub(r'http(s)?:\/\/\S*? ', " ", c_train)
-    # preprocessing with according to repl - замена символов и сокращений индуса
+
+    # preprocessing with according to repl,curse,fuck - замена символов и сокращений
     temp = []
     for word in c_train.split():
         if word in keys:
             temp += [repl[word]]
+        elif word in keys_curse:
+            temp.append(curse[word])
+        elif word in fuck_keys:
+            temp.append(fuck[word])
         else:
             temp += [word]
-
     c_train = deepcopy(" ".join(temp))
+
+    # deleting stop words in different languages by nltk
+    temp = []
+    flag = True
+    for word in c_train.split():
+        for lang in ['danish', 'dutch', 'english', 'finnish', 'french', 'german', 'hungarian', 'italian',\
+                     'norwegian', 'portuguese', 'russian', 'spanish', 'swedish', 'turkish']:
+            if word in stopwords.words(lang):
+                flag=False
+                break
+            flag=True
+
+        if flag:
+            temp += [word]
+    c_train = deepcopy(" ".join(temp))
+
+    # deleting stop words in different languages by stop-words 2015.2.23.1
+    temp = []
+    flag = True
+    for word in c_train.split():
+        for lang in ['arabic', 'catalan', 'romanian', 'ukrainian']:
+            if word in get_stop_words(lang):
+                flag=False
+                break
+            flag=True
+
+        if flag:
+            temp += [word]
+    c_train = deepcopy(" ".join(temp))
+
+    # drop words with length <= WORD_LENGTH_THRESOLD
+    temp = []
+    for word in c_train.split():
+        if len(word) <= WORD_LENGTH_THRESOLD:
+            continue
+        temp += [word]
+    c_train = deepcopy(" ".join(temp))
+
     # drop digits - try don't drop digits
     c_train = ''.join([i for i in c_train if not i.isdigit()])
     # drop punctuations except apostrophes
@@ -140,7 +247,8 @@ for c_train in train_C.values:
 
     prep_c_train += [p.sub(lambda m: (m.group(1) if m.group(1) else " "), c_train)]
 
-for c_test in test_C.values:
+
+for c_test in tqdm(test_C.values):
     # "ＷＨＡＴＡ  ＦＵＣＫ  ＭＡＮ" --> "WHATA FUCK MAN"
     c_test = unidecode(c_test)
     # to lowercase
@@ -148,15 +256,56 @@ for c_test in test_C.values:
 
     # drop urls
     c_test = re.sub(r'http(s)?:\/\/\S*? ', " ", c_test)
-    # preprocessing with according to repl
+    # preprocessing with according to repl,curse,fuck - замена символов и сокращений
     temp = []
     for word in c_test.split():
         if word in keys:
             temp += [repl[word]]
+        elif word in keys_curse:
+            temp.append(curse[word])
+        elif word in fuck_keys:
+            temp.append(fuck[word])
         else:
             temp += [word]
-
     c_test = deepcopy(" ".join(temp))
+
+    # deleting stop words in different languages by nltk
+    temp = []
+    flag = True
+    for word in c_test.split():
+        for lang in ['danish', 'dutch', 'english', 'finnish', 'french', 'german', 'hungarian', 'italian', \
+                     'norwegian', 'portuguese', 'russian', 'spanish', 'swedish', 'turkish']:
+            if word in stopwords.words(lang):
+                flag = False
+                break
+            flag = True
+
+        if flag:
+            temp += [word]
+    c_test = deepcopy(" ".join(temp))
+
+    # deleting stop words in different languages by stop-words 2015.2.23.1
+    temp = []
+    flag = True
+    for word in c_test.split():
+        for lang in ['arabic', 'catalan', 'romanian', 'ukrainian']:
+            if word in get_stop_words(lang):
+                flag = False
+                break
+            flag = True
+
+        if flag:
+            temp += [word]
+    c_test = deepcopy(" ".join(temp))
+
+    # drop words with length <= WORD_LENGTH_THRESOLD
+    temp = []
+    for word in c_test.split():
+        if len(word) <= WORD_LENGTH_THRESOLD:
+            continue
+        temp += [word]
+    c_test = deepcopy(" ".join(temp))
+
     # drop digits
     c_test = ''.join([i for i in c_test if not i.isdigit()])
     # drop punctuations except apostrophes
@@ -167,7 +316,15 @@ for c_test in test_C.values:
 print("Data preprocessing has done.")
 prep_c_train = np.array(prep_c_train) #np.array
 prep_c_test = np.array(prep_c_test)     #np.array
+
+#save files
+pd.DataFrame(prep_c_train).to_csv("preprocessed_train_comments.csv",index=False,header=False)
+pd.DataFrame(prep_c_test).to_csv("preprocessed_test_comments.csv",index=False,header=False)
+print("Preprocessed comments saved")
+
 #После выполнения этого скрипта мы получим предобработанные комменты
 #Например
 print("Some train comment, before: ", train_C.values[777])
 print("Some train comment, after: ", prep_c_train[777])
+
+print("Data_preprocesing has been done for {} seconds.".format(time.time() - start_time))
