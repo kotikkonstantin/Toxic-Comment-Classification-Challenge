@@ -208,7 +208,7 @@ for c_train in tqdm(train_C.values):
         else:
             temp += [word]
     c_train = deepcopy(" ".join(temp))
-
+    """
     # deleting stop words in different languages by nltk
     temp = []
     flag = True
@@ -237,7 +237,7 @@ for c_train in tqdm(train_C.values):
         if flag:
             temp += [word]
     c_train = deepcopy(" ".join(temp))
-
+    """
     # drop words with length <= WORD_LENGTH_THRESOLD
     temp = []
     for word in c_train.split():
@@ -281,7 +281,7 @@ for c_test in tqdm(test_C.values):
         else:
             temp += [word]
     c_test = deepcopy(" ".join(temp))
-
+    """
     # deleting stop words in different languages by nltk
     temp = []
     flag = True
@@ -310,7 +310,7 @@ for c_test in tqdm(test_C.values):
         if flag:
             temp += [word]
     c_test = deepcopy(" ".join(temp))
-
+    """
     # drop words with length <= WORD_LENGTH_THRESOLD
     temp = []
     for word in c_test.split():
@@ -329,10 +329,11 @@ for c_test in tqdm(test_C.values):
 print("Data preprocessing has done.")
 prep_c_train = np.array(prep_c_train) #np.array
 prep_c_test = np.array(prep_c_test)     #np.array
-
+print(prep_c_train.shape,prep_c_test.shape)
 #save files
-pd.DataFrame(prep_c_train).to_csv("preprocessed_train_comments.csv",index=False,header=False)
-pd.DataFrame(prep_c_test).to_csv("preprocessed_test_comments.csv",index=False,header=False)
+pd.DataFrame({"id":data_train["id"].values,"comment_text":prep_c_train}).to_csv('preprocessed_train.csv',index=False)
+pd.DataFrame({"id":data_test["id"].values,"comment_text":prep_c_test}).to_csv('preprocessed_test.csv',index=False)
+
 print("Preprocessed comments saved")
 
 #После выполнения этого скрипта мы получим предобработанные комменты
