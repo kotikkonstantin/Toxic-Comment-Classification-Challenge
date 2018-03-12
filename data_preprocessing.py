@@ -1,5 +1,5 @@
 
-#Thanks to ODS and Pavel Pleskov for some useful ideas and materials
+#Thanks to laol,ODS and Pavel Pleskov for some useful ideas and materials
 
 import pandas as pd
 import numpy as np
@@ -189,6 +189,12 @@ for c_train in tqdm(train_C.values):
 
     # drop urls
     c_train = re.sub(r'http(s)?:\/\/\S*? ', " ", c_train)
+    # drop ips
+    c_train = re.sub(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', ' ', c_train, flags=re.MULTILINE)
+    # drop images
+    c_train = re.sub("image:.*\.jpg|png", " ", c_train, flags=re.IGNORECASE)
+    # replace in words with 3 and more same symbol to only one symbol
+    c_train = re.sub(r'(.)\1{2,}', r'\1', c_train)
 
     # preprocessing with according to repl,curse,fuck - замена символов и сокращений
     temp = []
@@ -256,6 +262,13 @@ for c_test in tqdm(test_C.values):
 
     # drop urls
     c_test = re.sub(r'http(s)?:\/\/\S*? ', " ", c_test)
+    # drop ips
+    c_test = re.sub(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', ' ', c_test, flags=re.MULTILINE)
+    # drop images
+    c_test = re.sub("image:.*\.jpg|png", " ", c_test, flags=re.IGNORECASE)
+    # replace in words with 3 and more same symbol to only one symbol
+    c_test = re.sub(r'(.)\1{2,}', r'\1', c_test)
+
     # preprocessing with according to repl,curse,fuck - замена символов и сокращений
     temp = []
     for word in c_test.split():
@@ -328,3 +341,4 @@ print("Some train comment, before: ", train_C.values[777])
 print("Some train comment, after: ", prep_c_train[777])
 
 print("Data_preprocesing has been done for {} seconds.".format(time.time() - start_time))
+
