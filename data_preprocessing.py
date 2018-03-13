@@ -20,7 +20,7 @@ END_WORD = "_END_"
 NAN_WORD = "_NAN_"
 
 #length thresold for deleting words
-WORD_LENGTH_THRESOLD=3
+WORD_LENGTH_THRESOLD=1
 
 class_names = ['toxic', 'severe_toxic', 'obscene', 'threat', 'insult', 'identity_hate']
 
